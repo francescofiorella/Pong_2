@@ -56,7 +56,7 @@ void ADC_IRQHandler(void) {
 		if(position_current != 0 && (sub_pixel < -4 || sub_pixel > 4)){
 			// 239 (tot px) - 10 (bordi sx e dx) - 30 (paddle width) = 199 -> poi shift a dx di 5 (bordo sx)
 			position_current = AD_current*199/0xFFF + 5;
-			drawPaddle(position_current);
+			drawPaddle(position_current, USER);
 			last_interval = current_interval;
 			AD_last = AD_current;
 			position_last = position_current;

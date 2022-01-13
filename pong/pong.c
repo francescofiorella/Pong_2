@@ -15,84 +15,104 @@
 #include "../timer/timer.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
-// paddle y position
-#define PADDLE_Y_START 278
-#define PADDLE_Y_END 287
+// paddles y position
+// cpu paddle
+#define PADDLE_CPU_Y_START 32
+#define PADDLE_CPU_Y_END 41
+// player paddle
+#define PADDLE_USER_Y_START 278
+#define PADDLE_USER_Y_END 287
 
+// initial ball position
+#define BALL_X_START_DEFAULT 230
+#define BALL_Y_START_DEFAULT 157
 // ball default movements
 #define BALL_X_MOVEMENT_DEFAULT -2
 #define BALL_Y_MOVEMENT_DEFAULT 2
 
-typedef struct {
-	unsigned int x_start, y_start, x_end, y_end;
-	int x_movement, y_movement;
-} Ball;
-
-typedef struct {
-	unsigned int x_start, x_end;
-} Paddle;
-
 // game's variables
 Status game_status;
-unsigned int score, best_score;
+unsigned int user_score;
+unsigned int cpu_score;
 Ball ball;
-Paddle paddle;
+Paddle user_paddle;
+Paddle cpu_paddle;
 unsigned int is_sound_on;
+int cpu_paddle_target_position;
 
 void init_pong(void) {	
 	LCD_Clear(Black);
 	
 	drawBorders();
 	
-	// paddle drawn by adc
+	// user_paddle drawn by adc
 	game_status = STOPPED;
-	best_score = 100; // if set earlier, "New Best Score!" is not written
-	updateBestScore(best_score);
-	updateScore(0);
+	updateScore(0, USER);
+	updateScore(0, CPU);
+	
 	ball.x_movement = BALL_X_MOVEMENT_DEFAULT;
 	ball.y_movement = BALL_Y_MOVEMENT_DEFAULT;
-	initBall(230, 157); // ball in the middle
+	
+	user_paddle.y_start = PADDLE_USER_Y_START;
+	user_paddle.y_end = PADDLE_USER_Y_END;
+	cpu_paddle.y_start = PADDLE_CPU_Y_START;
+	cpu_paddle.y_end = PADDLE_CPU_Y_END;
+	
+	initBall(BALL_X_START_DEFAULT, BALL_Y_START_DEFAULT); // ball in the middle
 	
 	// draw the info
 	GUI_Text(65, 119, (uint8_t *) "Press KEY1 to", White, Black);
 	GUI_Text(60, 139, (uint8_t *) "start the game  ", White, Black);
 	GUI_Text(40, 179, (uint8_t *) "KEY2 to Pause/Resume", White, Black);
 	GUI_Text(60, 199, (uint8_t *) "INT0 to Reset", White, Black);
+	
+	// init the CPU paddle
+	drawPaddle(104, CPU);
 }
 
 void drawBorders() {
 	unsigned int i; // counter
 	
 	for (i = 0; i <= 4; i++){
-		LCD_DrawLine(0, i, 239, i, Red);	// top border
-		LCD_DrawLine(i, 0, i, 277, Red);	// left border
-		LCD_DrawLine(239-i, 0, 239-i, 277, Red);	// right border
+		LCD_DrawLine(i, 0, i, 319, Red);	// left border
+		LCD_DrawLine(239-i, 0, 239-i, 319, Red);	// right border
 	}
 }
 
-void drawPaddle(unsigned int start) { // draw a 31x10px paddle starting from "start" and 32px high from the bottom
+void drawPaddle(unsigned int start, Player player) { // draw a 31x10px paddle starting from "start" and 32px high from the bottom
 	unsigned int i, i_max; // counter
 	int i1; // counter (adjusted)
 	unsigned int end = start + 30;
 	int offset; // negative if the paddle is moving to left, positive otherwise
 	unsigned int x_delete, x_draw; // LCD_DrawLine() arguments
+	Paddle *paddle;
+	
+	switch(player) {
+		case USER:
+			paddle = &user_paddle;
+			break;
+		case CPU:
+			paddle = &cpu_paddle;
+			break;
+		default: // should not be possible
+			break;
+	}
 	
 	if (start >= 5 && start <= 204) { // if does not overlap the borders
-		offset = start - paddle.x_start;		
+		offset = start - paddle->x_start;		
 		if (offset > 0) { // right movement
-			x_delete = paddle.x_start;
-			if (paddle.x_start == 0) { // draw the paddle for the first time
+			x_delete = paddle->x_start;
+			if (paddle->x_start == 0) { // draw the paddle for the first time
 				x_draw = start;
 				i_max = 30;
 			} else {
-				x_draw = paddle.x_end;
+				x_draw = paddle->x_end;
 				i_max = offset;
 			}
 		} else { // left movement
-			x_delete = paddle.x_end;
-			x_draw = paddle.x_start;
+			x_delete = paddle->x_end;
+			x_draw = paddle->x_start;
 			i_max = -offset;
 		}
 		
@@ -103,15 +123,15 @@ void drawPaddle(unsigned int start) { // draw a 31x10px paddle starting from "st
 				i1 = -i;
 			}
 			// delete the previous paddle
-			if (paddle.x_start >= 5 && paddle.x_start <= 204) // only if the paddle is already drawn on screen
-				LCD_DrawLine(x_delete+i1, PADDLE_Y_START, x_delete+i1, PADDLE_Y_END, Black);
+			if (paddle->x_start >= 5 && paddle->x_start <= 204) // only if the paddle is already drawn on screen
+				LCD_DrawLine(x_delete+i1, paddle->y_start, x_delete+i1, paddle->y_end, Black);
 			
 			// draw the new paddle
-			LCD_DrawLine(x_draw+i1, PADDLE_Y_START, x_draw+i1, PADDLE_Y_END, Green);
+			LCD_DrawLine(x_draw+i1, paddle->y_start, x_draw+i1, paddle->y_end, Green);
 		}
 		
-		paddle.x_start = start;
-		paddle.x_end = end;
+		paddle->x_start = start;
+		paddle->x_end = end;
 	}
 }
 
@@ -150,7 +170,7 @@ void drawBall(unsigned int x, unsigned int y) { // draw a 5x5 ball starting from
 	unsigned int x1_delete1, x2_delete1, x1_delete2, x2_delete2, x1_draw1, x2_draw1, x1_draw2, x2_draw2;
 	unsigned int y1_delete1, y2_delete1, y1_delete2, y2_delete2, y1_draw1, y2_draw1, y1_draw2, y2_draw2;
 	
-	if (x >= 5 && y >= 5 && x <= 230 && y <= 315) {
+	if (x >= 5 && x <= 230 && y <= 315) {
 		// set the maximum number of iterations (x, y e total)		
 		i_x_max = abs(ball.x_movement)-1;
 		i_y_max = abs(ball.y_movement)-1;
@@ -273,34 +293,26 @@ void drawBall(unsigned int x, unsigned int y) { // draw a 5x5 ball starting from
 	}
 }
 
-void updateScore(unsigned int new_score) { // update the score
+void updateScore(unsigned int new_score, Player player) { // update the score
+	unsigned int x;
 	// cast int to string
 	char score_string[30];
-	sprintf(score_string, "%d   ", new_score); // + blank space to delethe the last score
 	
-	GUI_Text(5, 153, (uint8_t *) score_string, White, Black); // it's drawn in [156-164(px)], so 156 px from the top and 156 from the bottom
-	score = new_score;
-}
-
-void updateBestScore(unsigned int new_score) {
-	char score_string[30];
-
-	if (new_score > best_score) {
-		best_score = new_score;
-		GUI_Text(60, 139, (uint8_t *) "New Best Score!", Yellow, Black);
+	switch(player) {
+		case USER:
+			x = 15;
+			user_score = new_score;
+			break;
+		case CPU:
+			x = 215;
+			cpu_score = new_score;
+			break;
+		default: // should not be possible
+			break;
 	}
-	
-	// cast int to string
-	sprintf(score_string, "Best score: %d ", best_score);
-	
-	GUI_Text(80, 5, (uint8_t *) score_string, White, Black);
-}
 
-void deleteBestScore() {
-	unsigned int i;
-	for (i = 80; i <= 230; i++) {
-		LCD_DrawLine(i, 5, i, 20, Black);
-	}
+	sprintf(score_string, "%d", new_score);
+	GUI_Text(x, 153, (uint8_t *) score_string, White, Black); // it's drawn in [156-164(px)], so 156 px from the top and 156 from the bottom
 }
 
 // freqs:
@@ -324,6 +336,7 @@ void deleteBestScore() {
 
 void moveBall() {	
 	int pixel_hit;
+	unsigned int paddle_x_start;
 	
 	// if the sound is on, disable it
 	if (is_sound_on > 1) {
@@ -346,24 +359,29 @@ void moveBall() {
 			enable_timer(1);
 		}
 		
-		// check the vertical movement
-		// (y) - top
-		if (ball.y_movement < 0 && ball.y_start+ball.y_movement <= 4) { // top reached
-			ball.y_movement = - ball.y_movement;
+		// check the vertical movement (y)
+		// paddle reached or not
+		if ((ball.y_movement > 0 // verso il basso [user_paddle]
+			&& ball.y_end+ball.y_movement >= user_paddle.y_start // paddle height reached
+			&& ball.y_end < user_paddle.y_start // paddle height not passed
+			&& ball.x_end >= user_paddle.x_start // end_ball compared to start_paddle
+			&& ball.x_start <= user_paddle.x_end) // start_ball compared to end_paddle
+			|| (ball.y_movement < 0 // verso l'alto [cpu_paddle]
+			&& ball.y_start+ball.y_movement <= cpu_paddle.y_end // paddle height reached
+			&& ball.y_start > cpu_paddle.y_end // paddle height not passed
+			&& ball.x_end >= cpu_paddle.x_start // end_ball compared to start_paddle
+			&& ball.x_start <= cpu_paddle.x_end) // start_ball compared to end_paddle
+		) {
+			// disable and reset timer2 (just to be sure)
+			disable_timer(2);
+			reset_timer(2);
 			
-			// emit a lower pitched note
-			is_sound_on = 1;
-			init_timer(1, 4240); // C3
-			enable_timer(1);
-		}
-		
-		// (y) - bottom (paddle reached or not)
-		if (ball.y_movement > 0 // verso il basso
-			&& ball.y_end+ball.y_movement >= PADDLE_Y_START // paddle height reached
-			&& ball.y_end < PADDLE_Y_START // paddle height not passed
-			&& ball.x_end >= paddle.x_start // end_ball compared to start_paddle
-			&& ball.x_start <= paddle.x_end) { // start_ball compared to end_paddle
-				ball.y_movement = - ball.y_movement;			
+			if (ball.y_movement > 0) { // to the bottom
+				paddle_x_start = user_paddle.x_start;
+			} else {
+				paddle_x_start = cpu_paddle.x_start;
+			}
+			
 			// set ball y-movement checking the central pixel of the ball
 			/*
 				Paddle bits:
@@ -375,7 +393,7 @@ void moveBall() {
 				[18.4|  21.8  |  26.6  |  33.7  |   45   |  63.4  |90|  63.4  |   45   |  33.7  |  26.6  |  21.8  |18.4]
 			*/
 			
-			pixel_hit = ball.x_start + 2 - paddle.x_start;
+			pixel_hit = ball.x_start + 2 - paddle_x_start;
 			// pixel_hit can be < 0 or > 30 because the central pixel can fall outside the paddle
 			if (pixel_hit < 0) {
 				ball.x_movement = -6;
@@ -405,33 +423,100 @@ void moveBall() {
 				ball.x_movement = 6;
 			}
 			
-			// update score
-			if (score < 100) {
-				updateScore(score + 5);
-			} else {
-				updateScore(score + 10);
+			if (ball.y_movement > 0) { // bounced on the user_paddle
+				// calculate the hit point
+				cpu_paddle_target_position = calculateTrajectory(ball.x_start + 2);
+				// go to the hit point
+				enable_timer(2);
+			} else { // bounced on the cpu_paddle
+				// go to the middle
+				cpu_paddle_target_position = 104;
+				enable_timer(2);
 			}
+			
+			ball.y_movement = - ball.y_movement;
+			
+			// re-write scores
+			updateScore(user_score, USER);
+			updateScore(cpu_score, CPU);
 			
 			// emit a higher pitched note
 			is_sound_on = 1;
 			init_timer(1, 2120); // C4
 			enable_timer(1);
-		} else if (ball.y_movement > 0 && ball.y_end+ball.y_movement >= 319) { // you lost
-			setLost();
+		} else if (ball.y_movement > 0 && ball.y_end+ball.y_movement >= 319) { // cpu won
+			updateScore(cpu_score+1, CPU); // update score
+			updateScore(user_score, USER); // re-draw score
+			if (cpu_score == 5) {
+				setWin(CPU);
+			} else {
+				GUI_Text(50, 159, (uint8_t *) "You can do better!", Yellow, Black);
+				ball.x_movement = BALL_X_MOVEMENT_DEFAULT;
+				ball.y_movement = BALL_Y_MOVEMENT_DEFAULT;
+				initBall(BALL_X_START_DEFAULT, BALL_Y_START_DEFAULT); // ball in the middle
+				GUI_Text(50, 159, (uint8_t *) "You can do better!", Black, Black); // delete
+			}
+		} else if (ball.y_movement < 0 && ball.y_start+ball.y_movement <= 0) { // player won
+			updateScore(user_score+1, USER); // update score
+			updateScore(cpu_score, CPU); // re-draw score
+			if (user_score == 5) {
+				setWin(USER);
+			} else {
+				GUI_Text(80, 159, (uint8_t *) "Well done!", Yellow, Black);
+				// go to the middle
+				cpu_paddle_target_position = 104;
+				enable_timer(2);
+				ball.x_movement = BALL_X_MOVEMENT_DEFAULT;
+				ball.y_movement = BALL_Y_MOVEMENT_DEFAULT;
+				initBall(BALL_X_START_DEFAULT, BALL_Y_START_DEFAULT); // ball in the middle
+				GUI_Text(80, 159, (uint8_t *) "Well done!", Black, Black); // delete
+			}
 		}
 		drawBall(ball.x_start + ball.x_movement, ball.y_start + ball.y_movement);
 	}
 }
 
+int calculateTrajectory(unsigned int start_point) {
+	int end_point; // target
+	// y: from 42 to 277 (235px)
+	// x: from 5 to 234 (229 px)
+	// the ball in going to top
+	// to calculate the end_point, use the line passing through two points formula
+	/*
+		    (y-y1)(x2-x1)
+		x = ------------- + x1;
+		       y2-y1
+	
+		x = end_point (shifted to left/right);		x1 = start_point - 5;		x2 = start_point - 5 + x_movement;
+		y = 273;		y1 = 42;		y2 = 42 + y_movement;
+	*/
+	end_point = (231*ball.x_movement/ball.y_movement) + start_point - 5;
+	return recursiveCheck(end_point) - 10; // shift (+5 due to the border and -15 to place the middle of the paddle))
+}
+
+int recursiveCheck(int value) { // calculate the x point
+	if (value > 229) { // 234 - 5
+		value = 229 - (value - 229); // subtract a "screen" and invert
+		return recursiveCheck(value);
+	} else if (value < 0) { // 5 - 5
+		value = 229 - (value + 229); // add a "screen" and invert
+		return recursiveCheck(value);
+	} else {
+		return value; // between [0, 229]
+	}
+}
+
 void newPong() { // if you lost, set again the parameters to the default values
-	if (game_status == LOST) {
+	if (game_status == OVER) {
 		game_status = STOPPED;
+		GUI_Text(85, 100, (uint8_t *) "You Lose", Black, Black); // delete
+		GUI_Text(85, 208, (uint8_t *) "You Lose", Black, Black); // delete
 		GUI_Text(65, 119, (uint8_t *) "Press KEY1 to", White, Black);
 		GUI_Text(60, 139, (uint8_t *) "start the game  ", White, Black);
-		GUI_Text(85, 159, (uint8_t *) "You Lose", Black, Black); // delete the string
 		GUI_Text(40, 179, (uint8_t *) "KEY2 to Pause/Resume", White, Black);
 		GUI_Text(60, 199, (uint8_t *) "INT0 to Reset", White, Black);
-		updateScore(0);
+		updateScore(0, USER);
+		updateScore(0, CPU);
 		ball.x_movement = BALL_X_MOVEMENT_DEFAULT;
 		ball.y_movement = BALL_Y_MOVEMENT_DEFAULT;
 		initBall(230, 157); // ball in the middle
@@ -441,7 +526,6 @@ void newPong() { // if you lost, set again the parameters to the default values
 void setStart() { // start the game
 	game_status = STARTED;
 	enable_timer(0);
-	deleteBestScore();
 	// delete the info
 	GUI_Text(65, 119, (uint8_t *) "Press KEY1 to", Black, Black);
 	GUI_Text(60, 139, (uint8_t *) "start the game  ", Black, Black);
@@ -449,13 +533,23 @@ void setStart() { // start the game
 	GUI_Text(60, 199, (uint8_t *) "INT0 to Reset", Black, Black);
 }
 
-void setLost() { // you lost
-	game_status = LOST;
+void setWin(Player player) { // someone won
+	switch(player) {
+		case USER:
+			GUI_Text(85, 100, (uint8_t *) "You Lose", Red, Black);
+			GUI_Text(85, 208, (uint8_t *) "You Win", Green, Black);
+			break;
+		case CPU:
+			GUI_Text(85, 100, (uint8_t *) "You Win", Green, Black);
+			GUI_Text(85, 208, (uint8_t *) "You Lose", Red, Black);
+			break;
+		default: // should not be possible
+			break;
+	}
+	
+	game_status = OVER;
 	disable_timer(0);
 	reset_timer(0);
-	GUI_Text(85, 159, (uint8_t *) "You Lose", White, Black);
-	updateScore(score); // re-draw score
-	updateBestScore(score);
 }
 
 void setPause() { // pause the game
@@ -463,12 +557,10 @@ void setPause() { // pause the game
 	disable_timer(0);
 	reset_timer(0);
 	GUI_Text(88, 153, (uint8_t *) "Paused", White, Black);
-	updateBestScore(best_score); // draw the best score
 }
 
 void setResume() { // resume the game
 	game_status = STARTED;
-	deleteBestScore();
 	GUI_Text(88, 153, (uint8_t *) "Paused", Black, Black);
 	enable_timer(0);
 }

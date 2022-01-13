@@ -59,6 +59,8 @@ int main(void)
 	
 	enable_RIT();													/* RIT enabled												*/
 	
+	init_timer(2, 0x00000968);
+	
 	// init loudspeaker
 	LPC_PINCON->PINSEL1 |= (1<<21);
 	LPC_PINCON->PINSEL1 &= ~(1<<20);
