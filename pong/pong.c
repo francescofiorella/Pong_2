@@ -47,7 +47,7 @@ void init_pong(void) {
 	drawBorders();
 	
 	// user_paddle drawn by adc
-	game_status = STOPPED;
+	game_status = INITIAL;
 	updateScore(0, USER);
 	updateScore(0, CPU);
 	
@@ -347,7 +347,7 @@ void moveBall() {
 		is_sound_on++;
 	}
 	
-	if (game_status == STARTED) {
+	if (game_status == RUNNING) {
 		// check the horizontal movement (x)
 		if ((ball.x_movement > 0 && (ball.x_end+ball.x_movement >= 235)) // right border reached
 			|| (ball.x_movement < 0 && (ball.x_start+ball.x_movement <= 4))) { // left border reached
@@ -386,11 +386,11 @@ void moveBall() {
 			/*
 				Paddle bits:
 				[....-00-01-02-03-04-05-06-07-08-09-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-....]
-				x-movement:
-				[ -6 |   -5   |   -4   |   -3   |   -2   |   -1   |00|   01   |   02   |   03   |   04   |   05   | 06 ]
+				x-movement: [DC = Don't Change]
+				[ -6 |   -5   |   -4   |   -3   |   -2   |   -1   |DC|   01   |   02   |   03   |   04   |   05   | 06 ]
 				Considering y-movement = 2;
 				Corner (degrees) :
-				[18.4|  21.8  |  26.6  |  33.7  |   45   |  63.4  |90|  63.4  |   45   |  33.7  |  26.6  |  21.8  |18.4]
+				[18.4|  21.8  |  26.6  |  33.7  |   45   |  63.4  |DC|  63.4  |   45   |  33.7  |  26.6  |  21.8  |18.4]
 			*/
 			
 			pixel_hit = ball.x_start + 2 - paddle_x_start;
@@ -407,9 +407,7 @@ void moveBall() {
 				ball.x_movement = -2;
 			} else if (pixel_hit <= 14) {
 				ball.x_movement = -1;
-			} else if (pixel_hit == 15) {
-				ball.x_movement = 0;
-			} else if (pixel_hit <= 18) {
+			} else if (pixel_hit != 15 && pixel_hit <= 18) {
 				ball.x_movement = 1;
 			} else if (pixel_hit <= 21) {
 				ball.x_movement = 2;
@@ -427,10 +425,6 @@ void moveBall() {
 				// calculate the hit point
 				cpu_paddle_target_position = calculateTrajectory(ball.x_start + 2);
 				// go to the hit point
-				enable_timer(2);
-			} else { // bounced on the cpu_paddle
-				// go to the middle
-				cpu_paddle_target_position = 104;
 				enable_timer(2);
 			}
 			
@@ -451,10 +445,10 @@ void moveBall() {
 				setWin(CPU);
 			} else {
 				GUI_Text(50, 159, (uint8_t *) "You can do better!", Yellow, Black);
-				ball.x_movement = BALL_X_MOVEMENT_DEFAULT;
-				ball.y_movement = BALL_Y_MOVEMENT_DEFAULT;
-				initBall(BALL_X_START_DEFAULT, BALL_Y_START_DEFAULT); // ball in the middle
-				GUI_Text(50, 159, (uint8_t *) "You can do better!", Black, Black); // delete
+				disable_timer(0); // stop the ball
+				reset_timer(0);
+				game_status = WAITING;
+				enable_timer(3); // pause for 1 sec
 			}
 		} else if (ball.y_movement < 0 && ball.y_start+ball.y_movement <= 0) { // player won
 			updateScore(user_score+1, USER); // update score
@@ -463,19 +457,18 @@ void moveBall() {
 				setWin(USER);
 			} else {
 				GUI_Text(80, 159, (uint8_t *) "Well done!", Yellow, Black);
-				// go to the middle
-				cpu_paddle_target_position = 104;
-				enable_timer(2);
-				ball.x_movement = BALL_X_MOVEMENT_DEFAULT;
-				ball.y_movement = BALL_Y_MOVEMENT_DEFAULT;
-				initBall(BALL_X_START_DEFAULT, BALL_Y_START_DEFAULT); // ball in the middle
-				GUI_Text(80, 159, (uint8_t *) "Well done!", Black, Black); // delete
+				disable_timer(0); // stop the ball
+				reset_timer(0);
+				game_status = WAITING;
+				enable_timer(3); // pause for 1 sec
 			}
 		}
 		drawBall(ball.x_start + ball.x_movement, ball.y_start + ball.y_movement);
 	}
 }
 
+// calculate the target point on the cpu_paddle
+// the calculation is not accurate so that the cpu can lose
 int calculateTrajectory(unsigned int start_point) {
 	int end_point; // target
 	// y: from 42 to 277 (235px)
@@ -494,6 +487,21 @@ int calculateTrajectory(unsigned int start_point) {
 	return recursiveCheck(end_point) - 10; // shift (+5 due to the border and -15 to place the middle of the paddle))
 }
 
+void continueTheGame() {
+	if (game_status != PAUSED_WAITING) {
+		game_status = RUNNING;
+		// go to the middle
+		cpu_paddle_target_position = 104;
+		enable_timer(2);
+		ball.x_movement = BALL_X_MOVEMENT_DEFAULT;
+		ball.y_movement = BALL_Y_MOVEMENT_DEFAULT;
+		initBall(BALL_X_START_DEFAULT, BALL_Y_START_DEFAULT); // ball in the middle
+		// move the ball
+		enable_timer(0);
+		GUI_Text(50, 159, (uint8_t *) "You can do better!", Black, Black); // delete
+	}
+}
+
 int recursiveCheck(int value) { // calculate the x point
 	if (value > 229) { // 234 - 5
 		value = 229 - (value - 229); // subtract a "screen" and invert
@@ -507,9 +515,9 @@ int recursiveCheck(int value) { // calculate the x point
 }
 
 void newPong() { // if you lost, set again the parameters to the default values
-	if (game_status == OVER) {
-		game_status = STOPPED;
-		GUI_Text(85, 100, (uint8_t *) "You Lose", Black, Black); // delete
+	if (game_status == ENDED) {
+		game_status = INITIAL;
+		GUI_TextInverted(90, 111, (uint8_t *) "You Lose", Black, Black); // delete
 		GUI_Text(85, 208, (uint8_t *) "You Lose", Black, Black); // delete
 		GUI_Text(65, 119, (uint8_t *) "Press KEY1 to", White, Black);
 		GUI_Text(60, 139, (uint8_t *) "start the game  ", White, Black);
@@ -524,7 +532,7 @@ void newPong() { // if you lost, set again the parameters to the default values
 }
 
 void setStart() { // start the game
-	game_status = STARTED;
+	game_status = RUNNING;
 	enable_timer(0);
 	// delete the info
 	GUI_Text(65, 119, (uint8_t *) "Press KEY1 to", Black, Black);
@@ -536,33 +544,54 @@ void setStart() { // start the game
 void setWin(Player player) { // someone won
 	switch(player) {
 		case USER:
-			GUI_Text(85, 100, (uint8_t *) "You Lose", Red, Black);
+			GUI_TextInverted(90, 111, (uint8_t *) "You Lose", Red, Black);
 			GUI_Text(85, 208, (uint8_t *) "You Win", Green, Black);
 			break;
 		case CPU:
-			GUI_Text(85, 100, (uint8_t *) "You Win", Green, Black);
+			GUI_TextInverted(95, 111, (uint8_t *) "You Win", Green, Black);
 			GUI_Text(85, 208, (uint8_t *) "You Lose", Red, Black);
 			break;
 		default: // should not be possible
 			break;
 	}
 	
-	game_status = OVER;
+	game_status = ENDED;
 	disable_timer(0);
 	reset_timer(0);
 }
 
 void setPause() { // pause the game
-	game_status = PAUSED;
 	disable_timer(0);
 	reset_timer(0);
-	GUI_Text(88, 153, (uint8_t *) "Paused", White, Black);
+	
+	// disable the sound (just to be sure)
+	is_sound_on = 0;
+	disable_timer(1);
+	reset_timer(1);
+	
+	// stop the cpu_paddle
+	disable_timer(2);
+	if (game_status == RUNNING) {
+		GUI_Text(88, 153, (uint8_t *) "Paused", White, Black);
+		game_status = PAUSED;
+	} else if (game_status == WAITING) {
+		GUI_Text(88, 145, (uint8_t *) "Paused", White, Black);
+		game_status = PAUSED_WAITING;
+	}
 }
 
 void setResume() { // resume the game
-	game_status = STARTED;
-	GUI_Text(88, 153, (uint8_t *) "Paused", Black, Black);
-	enable_timer(0);
+	if (game_status == PAUSED) {
+		game_status = RUNNING;
+		GUI_Text(88, 153, (uint8_t *) "Paused", Black, Black);
+		enable_timer(0);
+		// resume the cpu_paddle
+		enable_timer(2);
+	} else if (game_status == PAUSED_WAITING) {
+		game_status = RUNNING;
+		GUI_Text(88, 145, (uint8_t *) "Paused", Black, Black);
+		continueTheGame();
+	}
 }
 
 /*********************************************************************************************************

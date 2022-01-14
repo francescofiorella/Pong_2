@@ -40,7 +40,7 @@ void RIT_IRQHandler (void)
 		if((LPC_GPIO2->FIOPIN & (1<<11)) == 0){ // key1 pressed
 			switch (key1) {
 				case 2:
-					if (game_status == STOPPED){
+					if (game_status == INITIAL){
 						// start the game
 						setStart();
 					}
@@ -62,10 +62,10 @@ void RIT_IRQHandler (void)
 		if((LPC_GPIO2->FIOPIN & (1<<12)) == 0){ // key2 pressed
 			switch (key2) {
 				case 2:
-					if (game_status == STARTED) {
+					if (game_status == RUNNING || game_status == WAITING) {
 						// pause the game
 						setPause();
-					} else if (game_status == PAUSED) {
+					} else if (game_status == PAUSED || game_status == PAUSED_WAITING) {
 						// resume the game
 						setResume();
 					}

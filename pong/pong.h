@@ -9,7 +9,7 @@
 *********************************************************************************************************/
 
 // game_status options
-typedef enum {STOPPED, STARTED, PAUSED, OVER} Status;
+typedef enum {INITIAL, RUNNING, PAUSED, ENDED, WAITING, PAUSED_WAITING} Status;
 
 // player types
 typedef enum {USER, CPU} Player;
@@ -33,6 +33,7 @@ extern void drawBall( unsigned int x_start, unsigned int y_start );
 extern void updateScore( unsigned int new_score, Player player );
 extern void moveBall( void );
 extern int calculateTrajectory( unsigned int start_point );
+extern void continueTheGame( void );
 extern void newPong( void );
 extern int recursiveCheck(int value);
 extern void setStart( void );

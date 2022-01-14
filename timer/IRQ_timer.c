@@ -101,5 +101,23 @@ void TIMER2_IRQHandler (void)
 }
 
 /******************************************************************************
+** Function name:		Timer0_IRQHandler
+**
+** Descriptions:		Timer/Counter 3 interrupt handler
+**
+** parameters:			None
+** Returned value:		None
+**
+******************************************************************************/
+
+void TIMER3_IRQHandler (void)
+{
+	continueTheGame();
+	
+  LPC_TIM3->IR = 1;			/* clear interrupt flag */
+  return;
+}
+
+/******************************************************************************
 **                            End Of File
 ******************************************************************************/

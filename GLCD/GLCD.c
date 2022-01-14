@@ -22,6 +22,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "GLCD.h" 
 #include "AsciiLib.h"
+#include <string.h>
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t LCD_Code;
@@ -631,6 +632,40 @@ void PutChar( uint16_t Xpos, uint16_t Ypos, uint8_t ASCI, uint16_t charColor, ui
 }
 
 /******************************************************************************
+* Function Name  : PutCharInverted
+* Description    : 将Lcd屏上任意位置显示一个字符
+* Input          : - Xpos: 水平坐标 
+*                  - Ypos: 垂直坐标  
+*				   - ASCI: 显示的字符
+*				   - charColor: 字符颜色   
+*				   - bkColor: 背景颜色 
+* Output         : None
+* Return         : None
+* Attention		 : None
+*******************************************************************************/
+void PutCharInverted( uint16_t Xpos, uint16_t Ypos, uint8_t ASCI, uint16_t charColor, uint16_t bkColor )
+{
+	uint16_t i, j;
+    uint8_t buffer[16], tmp_char;
+    GetASCIICode(buffer,ASCI);  /* 取字模数据 */
+    for( i=0; i<16; i++ )
+    {
+        tmp_char = buffer[i];
+        for( j=0; j<8; j++ )
+        {
+            if( ((tmp_char >> (7 - j)) & 0x01) == 0x01 )
+            {
+                LCD_SetPoint( Xpos - j, Ypos - i, charColor );  /* 字符颜色 */
+            }
+            else
+            {
+                LCD_SetPoint( Xpos - j, Ypos - i, bkColor );  /* 背景颜色 */
+            }
+        }
+    }
+}
+
+/******************************************************************************
 * Function Name  : GUI_Text
 * Description    : 在指定座标显示字符串
 * Input          : - Xpos: 行座标
@@ -667,7 +702,43 @@ void GUI_Text(uint16_t Xpos, uint16_t Ypos, uint8_t *str,uint16_t Color, uint16_
     while ( *str != 0 );
 }
 
-
+/******************************************************************************
+* Function Name  : GUI_TextInverted
+* Description    : 在指定座标显示字符串
+* Input          : - Xpos: 行座标
+*                  - Ypos: 列座标 
+*				   - str: 字符串
+*				   - charColor: 字符颜色   
+*				   - bkColor: 背景颜色 
+* Output         : None
+* Return         : None
+* Attention		 : None
+*******************************************************************************/
+void GUI_TextInverted(uint16_t Xpos, uint16_t Ypos, uint8_t *str,uint16_t Color, uint16_t bkColor)
+{
+		size_t CharLength = strlen(str);
+    uint8_t TempChar;
+		int i; // contatore
+	
+		for (i = CharLength - 1; i >= 0; i--) {
+        TempChar = str[i];  
+        PutCharInverted( Xpos, Ypos, TempChar, Color, bkColor );    
+        if( Xpos < MAX_X - 8 )
+        {
+            Xpos += 8;
+        } 
+        else if ( Ypos < MAX_Y - 16 )
+        {
+            Xpos = 0;
+            Ypos += 16;
+        }   
+        else
+        {
+            Xpos = 0;
+            Ypos = 0;
+        }    
+    }
+}
 
 /*********************************************************************************************************
       END FILE
