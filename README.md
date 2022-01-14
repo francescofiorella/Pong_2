@@ -17,7 +17,7 @@ Every time the ball falls below one’s paddle, the other player’s score is in
 
 The user can start the game by pressing the button KEY1. When the game starts, the ball touches the right wall at mid high (160px from both the bottom and top part of the screen) and goes downwards with an angle of 45°. To pause the game and later resume it, the user can press the button KEY2. In case of game over, to prepare a new game the player can press the INT0 button, followed by KEY1 to start it.
 
-_Homepage preview on the simulator:_
+_Homepage preview on the emulator:_
 
 <img width="591" alt="pong_2_preview" src="https://user-images.githubusercontent.com/22116863/149555396-6699769f-a0cd-45e0-bdad-483924adc4cd.png">
 
