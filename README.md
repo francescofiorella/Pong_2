@@ -11,7 +11,7 @@ As for the previous project, when the ball hits a wall, it bounces with a reflec
 When the ball hits the paddles, the reflection angle is not always equal to the incident one, and it changes depending on what part of the paddle is hit by the ball.
 The bottom paddle is 32px high from the bottom part of the screen and 10px thick, and the ball is a 5x5px square. The top paddle is 32px lower from the top part of the screen and 10px thick.
 
-Whenever the ball hits a wall or the paddle, the buzzer (loudspeaker) emits a lower pitched note (when bouncing on the wall) and a higher pitched note (when bouncing on the paddle).
+Whenever the ball hits a wall or a paddle, the buzzer (loudspeaker) emits a lower pitched note (when bouncing on the wall) and a higher pitched note (when bouncing on the paddle).
 
 Every time the ball falls below one’s paddle, the other player’s score is incremented by 1. The game ends as soon as one player scores 5 points, with the message “You win” or “You lose” displayed on the screen for both players. The score is printed on the left side of the screen for the first player and on the right side for the second player, at mid high (160px from both the bottom and top part of the LCD).
 
