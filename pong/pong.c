@@ -407,7 +407,9 @@ void moveBall() {
 				ball.x_movement = -2;
 			} else if (pixel_hit <= 14) {
 				ball.x_movement = -1;
-			} else if (pixel_hit != 15 && pixel_hit <= 18) {
+			} else if (pixel_hit == 15) {
+				// do nothing
+			} else if (pixel_hit <= 18) {
 				ball.x_movement = 1;
 			} else if (pixel_hit <= 21) {
 				ball.x_movement = 2;
