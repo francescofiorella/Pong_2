@@ -716,7 +716,7 @@ void GUI_Text(uint16_t Xpos, uint16_t Ypos, uint8_t *str,uint16_t Color, uint16_
 *******************************************************************************/
 void GUI_TextInverted(uint16_t Xpos, uint16_t Ypos, uint8_t *str,uint16_t Color, uint16_t bkColor)
 {
-		size_t CharLength = strlen(str);
+		size_t CharLength = strlen((char *)str);
     uint8_t TempChar;
 		int i; // contatore
 	

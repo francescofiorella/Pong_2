@@ -12,10 +12,6 @@
 #include "timer.h"
 #include "../pong/pong.h"
 
-// cpu_paddle (needed to retrieve current position)
-extern Paddle cpu_paddle;
-extern int cpu_paddle_target_position;
-
 /******************************************************************************
 ** Function name:		Timer0_IRQHandler
 **
@@ -79,22 +75,7 @@ void TIMER1_IRQHandler (void)
 void TIMER2_IRQHandler (void)
 {
 	// move the cpu_paddle
-	if (cpu_paddle_target_position < 5)
-		cpu_paddle_target_position = 5;
-	if (cpu_paddle_target_position > 204)
-		cpu_paddle_target_position = 204;
-	
-	if (cpu_paddle.x_start < cpu_paddle_target_position) {
-		// go right
-		drawPaddle(cpu_paddle.x_start + 1, CPU);
-	} else if (cpu_paddle.x_start > cpu_paddle_target_position) {
-		// go left
-		drawPaddle(cpu_paddle.x_start - 1, CPU);
-	} else {
-		// stop moving
-		disable_timer(2);
-		reset_timer(2);
-	}
+	moveCpuPaddle();
 	
   LPC_TIM2->IR = 1;			/* clear interrupt flag */
   return;

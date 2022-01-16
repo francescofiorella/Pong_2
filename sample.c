@@ -59,7 +59,7 @@ int main(void)
 	
 	enable_RIT();													/* RIT enabled												*/
 	
-	init_timer(2, 0x00098968);						/* T = 0.025s                          */
+	init_timer(2, 0x0003D090);						/* T = 0.01s                          */
 	init_timer(3, 0x02FAF080);						/* T = 2s                             */
 	
 	// init loudspeaker

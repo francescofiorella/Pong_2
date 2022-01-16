@@ -523,6 +523,16 @@
               <FileType>5</FileType>
               <FilePath>.\pong\pong.h</FilePath>
             </File>
+            <File>
+              <FileName>ball_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\pong\ball_manager.c</FilePath>
+            </File>
+            <File>
+              <FileName>paddle_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\pong\paddle_manager.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
