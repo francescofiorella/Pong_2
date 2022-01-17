@@ -60,22 +60,24 @@ void updateScore(unsigned int new_score, Player player) { // update the score
 	unsigned int x;
 	// cast int to string
 	char score_string[30];
+	sprintf(score_string, "%d", new_score);
+	
+	// the score it's drawn in [156-164(px)], so 156 px from the top and 156 from the bottom
 	
 	switch(player) {
 		case USER:
 			x = 15;
 			user_score = new_score;
+			GUI_Text(x, 153, (uint8_t *) score_string, White, Black);
 			break;
 		case CPU:
 			x = 215;
 			cpu_score = new_score;
+			GUI_TextInverted(x, 167, (uint8_t *) score_string, White, Black);
 			break;
 		default: // should not be possible
 			break;
 	}
-
-	sprintf(score_string, "%d", new_score);
-	GUI_Text(x, 153, (uint8_t *) score_string, White, Black); // it's drawn in [156-164(px)], so 156 px from the top and 156 from the bottom
 }
 
 // freqs:
