@@ -129,12 +129,12 @@ void newPong() { // if you lost, set again the parameters to the default values
 		game_status = INITIAL;
 		GUI_TextInverted(90, 111, (uint8_t *) "You Lose", Black, Black); // delete
 		GUI_Text(85, 208, (uint8_t *) "You Lose", Black, Black); // delete
+		updateScore(0, USER);
+		updateScore(0, CPU);
 		GUI_Text(65, 119, (uint8_t *) "Press KEY1 to", White, Black);
 		GUI_Text(60, 139, (uint8_t *) "start the game  ", White, Black);
 		GUI_Text(40, 179, (uint8_t *) "KEY2 to Pause/Resume", White, Black);
 		GUI_Text(60, 199, (uint8_t *) "INT0 to Reset", White, Black);
-		updateScore(0, USER);
-		updateScore(0, CPU);
 		resetBall();
 		// move the cpu paddle to the middle
 		setCpuPaddleTarget(104);
