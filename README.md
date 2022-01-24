@@ -23,3 +23,4 @@ _Homepage preview on the emulator:_
 
 _Gameplay on the Landtiger board:_
 
+https://user-images.githubusercontent.com/22116863/150841499-10ac7e64-6c99-4ed5-a96f-ff65d929a7d7.mp4
