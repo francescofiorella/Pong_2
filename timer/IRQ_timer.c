@@ -1,7 +1,7 @@
 /*********************************************************************************************************
 **--------------File Info---------------------------------------------------------------------------------
 ** File name:           IRQ_timer.c
-** Last modified Date:  03/01/2022
+** Last modified Date:  13/01/2022
 ** Last Version:        V2.00
 ** Descriptions:        functions to manage T0 and T1 interrupts
 ** Correlated files:    timer.h, pong.h

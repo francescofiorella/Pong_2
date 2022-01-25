@@ -1,7 +1,7 @@
 /*********************************************************************************************************
 **--------------File Info---------------------------------------------------------------------------------
 ** File name:           IRQ_adc.c
-** Last modified Date:  03/01/2022
+** Last modified Date:  13/01/2022
 ** Last Version:        V1.00
 ** Descriptions:        functions to manage A/D interrupts
 ** Correlated files:    adc.h, pong.h
